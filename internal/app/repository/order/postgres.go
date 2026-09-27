@@ -58,7 +58,8 @@ func (r *repoPg) Update(ctx context.Context, order entity.Order) error {
 		Model(&entity.Order{}).
 		Where("guid = ?", order.GUID).
 		Updates(map[string]any{
-			"status": order.Status,
+			"status":     order.Status,
+			"updated_at": order.UpdatedAt,
 		})
 
 	if result.RowsAffected == 0 {

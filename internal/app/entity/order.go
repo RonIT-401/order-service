@@ -61,7 +61,6 @@ type RequestOrderList struct {
 }
 
 type ResponseOrderCreate struct {
-	ID         int64               `json:"id"`
 	GUID       uuid.UUID           `json:"guid"`
 	UserGUID   *uuid.UUID          `json:"user_guid" binding:"omitempty"`
 	TotalPrice int64               `json:"total_price"`

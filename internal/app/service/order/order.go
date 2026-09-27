@@ -69,7 +69,7 @@ func (s *srv) Update(ctx context.Context, guid uuid.UUID, req entity.RequestOrde
 
 		order, err = s.GetByGUID(ctx, guid)
 		if err != nil {
-			return entity.ErrNotFound
+			return err
 		}
 
 		order.Status = req.Status
@@ -87,7 +87,7 @@ func (s *srv) Delete(ctx context.Context, guid uuid.UUID) error {
 	err := s.repoOrder.InsideTx(ctx, func(ctx context.Context) error {
 		_, err := s.GetByGUID(ctx, guid)
 		if err != nil {
-			return entity.ErrNotFound
+			return err
 		}
 
 		return s.repoOrder.Delete(ctx, guid)

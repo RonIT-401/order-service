@@ -49,7 +49,6 @@ func (h *handler) Create(c *gin.Context) {
 	}
 
 	resp := entity.ResponseOrderCreate{
-		ID:         order.ID,
 		GUID:       order.GUID,
 		UserGUID:   order.UserGUID,
 		TotalPrice: order.TotalPrice,
