@@ -26,7 +26,11 @@ func cmdWebServer(cCtx *cli.Context) error {
 	b := builder.NewBuilder(cCtx)
 	b.BuildConfig()
 	b.BuildRepoConnPostgres()
+	b.BuildRepoOrder()
+	b.BuildServiceOrder()
+	b.BuildHandlerOrder()
 	b.BuildProcHttp()
 	b.Run()
+
 	return nil
 }
