@@ -55,6 +55,9 @@ func (m *middleware) Callback(c *gin.Context) {
 	ev.Ctx(c.Request.Context())
 	ev.Str("exec_time", execTime.String())
 	ev.Str("client_ip", c.ClientIP())
+	if status := httph.ErrorGetStatusCode(c.Request); status > 0 {
+		ev.Int("http_status_code", status)
+	}
 	ev.Msg(mb.String())
 }
 
