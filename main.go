@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/RonIT-401/order-service/internal/app/constant"
-	msentry "github.com/RonIT-401/order-service/internal/app/monitor/sentry"
 	"github.com/urfave/cli/v2"
 
 	"github.com/RonIT-401/order-service/cmd"
+	"github.com/RonIT-401/order-service/internal/app/constant"
+	msentry "github.com/RonIT-401/order-service/internal/app/monitor/sentry"
 )
 
 func main() {
