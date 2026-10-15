@@ -12,6 +12,7 @@ import (
 	"github.com/RonIT-401/order-service/internal/app/config/section"
 	"github.com/RonIT-401/order-service/internal/app/constant"
 	msentry "github.com/RonIT-401/order-service/internal/app/monitor/sentry"
+	mtracelog "github.com/RonIT-401/order-service/internal/app/monitor/tracelog"
 )
 
 type Config struct {
@@ -74,6 +75,7 @@ func Load(args LoadArgs) {
 func createLogger(level zerolog.Level, output io.Writer) zerolog.Logger {
 	return zerolog.New(output).
 		Level(level).
+		Hook(mtracelog.Hook{}).
 		With().
 		Timestamp().
 		Logger()
