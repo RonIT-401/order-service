@@ -16,11 +16,13 @@ import (
 	ccatalog "github.com/RonIT-401/order-service/internal/app/client/catalog"
 	cgrpc "github.com/RonIT-401/order-service/internal/app/client/catalog/grpc"
 	"github.com/RonIT-401/order-service/internal/app/config"
+	"github.com/RonIT-401/order-service/internal/app/constant"
 	rhandler "github.com/RonIT-401/order-service/internal/app/handler/http"
 	rhealth "github.com/RonIT-401/order-service/internal/app/handler/http/health"
 	horder "github.com/RonIT-401/order-service/internal/app/handler/http/order"
 	"github.com/RonIT-401/order-service/internal/app/processor"
 	rprocessor "github.com/RonIT-401/order-service/internal/app/processor/http"
+	"github.com/RonIT-401/order-service/internal/app/processor/monitor"
 	"github.com/RonIT-401/order-service/internal/app/repository"
 	rcpostgres "github.com/RonIT-401/order-service/internal/app/repository/conn/postgres"
 	porder "github.com/RonIT-401/order-service/internal/app/repository/order"
@@ -48,6 +50,8 @@ type Builder struct {
 
 	catalogV1Client ccatalog.Client
 	catalogGrpcConn *grpc.ClientConn
+
+	otelServiceName string
 
 	processors []processor.Processor
 }
@@ -160,6 +164,25 @@ func (b *Builder) BuildClientGrpcCatalogV1() {
 	})
 }
 
+func (b *Builder) BuildMonitorOpenTelemetry() {
+	cfg := b.cfg.Monitor.OpenTelemetry
+	if !cfg.Enabled {
+		log.Warn().Msg("OpenTelemetry is disabled by config")
+		return
+	}
+
+	b.exec(func(b *Builder) {
+		proc, err := monitor.NewOpenTelemetryController(b.ctx, b.cfg.Monitor.Environment, cfg)
+		if err != nil {
+			b.err = fmt.Errorf("init OpenTelemetry: %w", err)
+			return
+		}
+
+		b.processors = append(b.processors, proc)
+		b.otelServiceName = constant.AppName
+	})
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 ///// HANDLERS /////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
@@ -176,7 +199,7 @@ func (b *Builder) BuildHandlerOrder() {
 
 func (b *Builder) BuildProcHttp() {
 	b.exec(func(b *Builder) {
-		proc := rprocessor.NewHTTP(b.healthHandler, b.orderHandler, b.cfg.Processor.WebServer)
+		proc := rprocessor.NewHTTP(b.otelServiceName, b.healthHandler, b.orderHandler, b.cfg.Processor.WebServer)
 		b.processors = append(b.processors, proc)
 	}, b.healthHandler, b.orderHandler)
 }
