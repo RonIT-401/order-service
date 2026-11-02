@@ -5,21 +5,32 @@ import (
 	"time"
 
 	"github.com/gofrs/uuid"
+	"github.com/rs/zerolog/log"
 
 	ccatalog "github.com/RonIT-401/order-service/internal/app/client/catalog"
 	"github.com/RonIT-401/order-service/internal/app/entity"
 	"github.com/RonIT-401/order-service/internal/app/repository"
 	"github.com/RonIT-401/order-service/internal/app/service"
+	"github.com/RonIT-401/order-service/internal/pkg/broker"
 	catalogv1 "github.com/RonIT-401/order-service/internal/pkg/grpc/gen/catalog/v1"
 )
 
 type srv struct {
-	repoOrder   repository.Order
-	catalogGrpc ccatalog.Client
+	repoOrder       repository.Order
+	catalogGrpc     ccatalog.Client
+	busOrderCreated broker.Bus[entity.EventOrderCreated]
 }
 
-func NewService(repoOrder repository.Order, catalogGrpc ccatalog.Client) service.Order {
-	return &srv{repoOrder: repoOrder, catalogGrpc: catalogGrpc}
+func NewService(
+	repoOrder repository.Order,
+	catalogGrpc ccatalog.Client,
+	busOrderCreated broker.Bus[entity.EventOrderCreated],
+) service.Order {
+	return &srv{
+		repoOrder:       repoOrder,
+		catalogGrpc:     catalogGrpc,
+		busOrderCreated: busOrderCreated,
+	}
 }
 
 func (s *srv) Create(ctx context.Context, req entity.RequestOrderCreate) (entity.Order, error) {
@@ -88,6 +99,34 @@ func (s *srv) Create(ctx context.Context, req entity.RequestOrderCreate) (entity
 
 	if err := s.repoOrder.Create(ctx, order); err != nil {
 		return entity.Order{}, err
+	}
+
+	ev := entity.EventOrderCreated{
+		OrderGUID:  order.GUID.String(),
+		Currency:   order.Currency,
+		TotalPrice: order.TotalPrice,
+		CreatedAt:  order.CreatedAt.Format(time.RFC3339),
+		Items:      make([]entity.EventOrderCreatedItem, 0, len(order.Items)),
+	}
+
+	if order.UserGUID != nil {
+		userGUID := order.UserGUID.String()
+		ev.UserGUID = &userGUID
+	}
+
+	for _, item := range order.Items {
+		ev.Items = append(ev.Items, entity.EventOrderCreatedItem{
+			ProductGUID: item.ProductGUID.String(),
+			Quantity:    item.Quantity,
+			UnitPrice:   item.UnitPrice,
+		})
+	}
+
+	if err := s.busOrderCreated.Send(ctx, &ev,
+		entity.BrokerHeaderOrderCreatedType(),
+		entity.BrokerHeaderOrderCreatedEventID(),
+	); err != nil {
+		log.Error().Err(err).EmbedObject(ev).Msg("failed to publish order.created")
 	}
 
 	return order, nil
