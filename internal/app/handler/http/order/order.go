@@ -49,13 +49,14 @@ func (h *handler) Create(c *gin.Context) {
 	}
 
 	resp := entity.ResponseOrderCreate{
-		GUID:       order.GUID,
-		UserGUID:   order.UserGUID,
-		TotalPrice: order.TotalPrice,
-		Currency:   order.Currency,
-		Status:     order.Status,
-		CreatedAt:  order.CreatedAt,
-		Items:      mapOrderItems(order.Items),
+		GUID:          order.GUID,
+		UserGUID:      order.UserGUID,
+		TotalPrice:    order.TotalPrice,
+		DeliveryPrice: order.DeliveryPrice,
+		Currency:      order.Currency,
+		Status:        order.Status,
+		CreatedAt:     order.CreatedAt,
+		Items:         mapOrderItems(order.Items),
 	}
 
 	httph.SendJSON(c.Writer, http.StatusCreated, resp)
@@ -75,15 +76,16 @@ func (h *handler) GetByGUID(c *gin.Context) {
 	}
 
 	resp := entity.ResponseOrderGet{
-		ID:         order.ID,
-		GUID:       order.GUID,
-		UserGUID:   order.UserGUID,
-		TotalPrice: order.TotalPrice,
-		Currency:   order.Currency,
-		Status:     order.Status,
-		CreatedAt:  order.CreatedAt,
-		UpdatedAt:  order.UpdatedAt,
-		Items:      mapOrderItems(order.Items),
+		ID:            order.ID,
+		GUID:          order.GUID,
+		UserGUID:      order.UserGUID,
+		TotalPrice:    order.TotalPrice,
+		DeliveryPrice: order.DeliveryPrice,
+		Currency:      order.Currency,
+		Status:        order.Status,
+		CreatedAt:     order.CreatedAt,
+		UpdatedAt:     order.UpdatedAt,
+		Items:         mapOrderItems(order.Items),
 	}
 
 	httph.SendJSON(c.Writer, http.StatusOK, resp)
@@ -109,15 +111,16 @@ func (h *handler) Update(c *gin.Context) {
 	}
 
 	resp := entity.ResponseOrderUpdate{
-		ID:         order.ID,
-		GUID:       order.GUID,
-		UserGUID:   order.UserGUID,
-		TotalPrice: order.TotalPrice,
-		Currency:   order.Currency,
-		Status:     order.Status,
-		CreatedAt:  order.CreatedAt,
-		UpdatedAt:  order.UpdatedAt,
-		Items:      mapOrderItems(order.Items),
+		ID:            order.ID,
+		GUID:          order.GUID,
+		UserGUID:      order.UserGUID,
+		TotalPrice:    order.TotalPrice,
+		DeliveryPrice: order.DeliveryPrice,
+		Currency:      order.Currency,
+		Status:        order.Status,
+		CreatedAt:     order.CreatedAt,
+		UpdatedAt:     order.UpdatedAt,
+		Items:         mapOrderItems(order.Items),
 	}
 
 	httph.SendJSON(c.Writer, http.StatusOK, resp)

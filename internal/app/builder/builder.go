@@ -17,6 +17,7 @@ import (
 	cgrpc "github.com/RonIT-401/order-service/internal/app/client/catalog/grpc"
 	"github.com/RonIT-401/order-service/internal/app/config"
 	"github.com/RonIT-401/order-service/internal/app/constant"
+	"github.com/RonIT-401/order-service/internal/app/entity"
 	rhandler "github.com/RonIT-401/order-service/internal/app/handler/http"
 	rhealth "github.com/RonIT-401/order-service/internal/app/handler/http/health"
 	horder "github.com/RonIT-401/order-service/internal/app/handler/http/order"
@@ -28,6 +29,8 @@ import (
 	porder "github.com/RonIT-401/order-service/internal/app/repository/order"
 	"github.com/RonIT-401/order-service/internal/app/service"
 	sorder "github.com/RonIT-401/order-service/internal/app/service/order"
+	"github.com/RonIT-401/order-service/internal/pkg/broker"
+	"github.com/RonIT-401/order-service/internal/pkg/broker/codec"
 )
 
 type Builder struct {
@@ -50,6 +53,9 @@ type Builder struct {
 
 	catalogV1Client ccatalog.Client
 	catalogGrpcConn *grpc.ClientConn
+
+	kafkaClient     *broker.KafkaClient
+	busOrderCreated broker.Bus[entity.EventOrderCreated]
 
 	otelServiceName string
 
@@ -133,8 +139,8 @@ func (b *Builder) BuildRepoOrder() {
 
 func (b *Builder) BuildServiceOrder() {
 	b.exec(func(b *Builder) {
-		b.orderService = sorder.NewService(b.orderRepo, b.catalogV1Client)
-	}, b.orderRepo, b.catalogV1Client)
+		b.orderService = sorder.NewService(b.orderRepo, b.catalogV1Client, b.busOrderCreated)
+	}, b.orderRepo, b.catalogV1Client, b.busOrderCreated)
 }
 
 func (b *Builder) BuildClientGrpcCatalogV1() {
@@ -202,6 +208,62 @@ func (b *Builder) BuildProcHttp() {
 		proc := rprocessor.NewHTTP(b.otelServiceName, b.healthHandler, b.orderHandler, b.cfg.Processor.WebServer)
 		b.processors = append(b.processors, proc)
 	}, b.healthHandler, b.orderHandler)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+///// BROKER ///////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+func (b *Builder) BuildBrokerKafka() {
+	b.exec(func(b *Builder) {
+		cfg := b.cfg.Broker.Kafka
+
+		client, err := broker.NewKafkaClient(
+			broker.KafkaConfig{
+				Addresses:     cfg.Addresses,
+				ConsumerGroup: cfg.ConsumerGroup,
+				ClientID:      cfg.ClientID,
+			},
+		)
+		if err != nil {
+			b.err = fmt.Errorf("init Kafka: %w", err)
+			return
+		}
+
+		b.kafkaClient = client
+
+		topic := cfg.ModelOrder.Created.Topic
+		consumerGroup := broker.Coalesce(
+			cfg.ModelOrder.Created.ConsumerGroup,
+			cfg.ConsumerGroup,
+		)
+
+		bus, err := broker.NewBus[entity.EventOrderCreated](
+			client,
+			codec.NewCodecJson[entity.EventOrderCreated](),
+			topic,
+			consumerGroup,
+		)
+		if err != nil {
+			b.err = fmt.Errorf("init order created bus: %w", err)
+			return
+		}
+
+		b.busOrderCreated = bus
+
+		b.processors = append(
+			b.processors,
+			processor.ProcessorFunc(func(ctx context.Context, wg *sync.WaitGroup) {
+				processor.WatchForShutdown(
+					ctx,
+					wg,
+					processor.CloserFunc(func() error {
+						return client.Close()
+					}),
+				)
+			}),
+		)
+	})
 }
 
 ////////////////////////////////////////////////////////////////////////////////
