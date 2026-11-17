@@ -20,4 +20,6 @@ type Order interface {
 	Update(ctx context.Context, order entity.Order) error
 	Delete(ctx context.Context, guid uuid.UUID) error
 	List(ctx context.Context, status *string, userGUID *uuid.UUID) ([]entity.Order, error)
+
+	UpdateDelivery(ctx context.Context, orderGUID uuid.UUID, deliveryPrice int64) (bool, error)
 }

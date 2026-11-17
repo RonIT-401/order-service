@@ -174,3 +174,18 @@ func (s *srv) Delete(ctx context.Context, guid uuid.UUID) error {
 func (s *srv) List(ctx context.Context, req entity.RequestOrderList) ([]entity.Order, error) {
 	return s.repoOrder.List(ctx, req.Status, req.UserGUID)
 }
+
+func NewDeliveryService(repoOrder repository.Order) service.OrderDelivery {
+	return &srv{
+		repoOrder: repoOrder,
+	}
+}
+
+func (s *srv) UpdateDelivery(ctx context.Context, event entity.EventOrderDeliveryCalculated) (bool, error) {
+	orderGUID, err := uuid.FromString(event.OrderGUID)
+	if err != nil {
+		return false, err
+	}
+
+	return s.repoOrder.UpdateDelivery(ctx, orderGUID, event.DeliveryPrice)
+}
