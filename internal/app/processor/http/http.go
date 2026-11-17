@@ -56,8 +56,10 @@ func NewHTTP(
 	vGenericRegHealthCheck(router, hHealth)
 	vGenericRegPprof(router)
 
-	v1 := router.Group("/v1")
-	v1RegOrderHandler(v1, hOrder)
+	if hOrder != nil {
+		v1 := router.Group("/v1")
+		v1RegOrderHandler(v1, hOrder)
+	}
 
 	for _, route := range router.Routes() {
 		log.Info().

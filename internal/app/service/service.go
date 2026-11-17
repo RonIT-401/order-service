@@ -15,3 +15,7 @@ type Order interface {
 	Delete(ctx context.Context, guid uuid.UUID) error
 	List(ctx context.Context, req entity.RequestOrderList) ([]entity.Order, error)
 }
+
+type OrderDelivery interface {
+	UpdateDelivery(ctx context.Context, event entity.EventOrderDeliveryCalculated) (bool, error)
+}
